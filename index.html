@@ -1,0 +1,101 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interfaces com Redes Neurais e Expressão Facial - Web / GitHub Pages</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👁️</text></svg>">
+</head>
+<body>
+  <!-- Header Principal com Controles Globais -->
+  <header class="app-header">
+    <div class="app-title">
+      <h1>Interfaces com Redes Neurais & Expressão Facial</h1>
+      <span class="badge">MediaPipe + p5.js</span>
+    </div>
+
+    <div class="header-controls">
+      <!-- Alternância de Visualização -->
+      <button id="btn-view-split" class="btn btn-primary" title="Exibir Câmera e Bolinhas lado a lado">
+        🪟 Lado a Lado
+      </button>
+      <button id="btn-view-detector" class="btn" title="Exibir apenas o detector de câmera">
+        📷 Apenas Câmera
+      </button>
+      <button id="btn-view-bolinhas" class="btn" title="Exibir apenas a tela de bolinhas">
+        🎨 Apenas Bolinhas
+      </button>
+
+      <!-- Abertura em Janelas Separadas (Demonstração de BroadcastChannel multi-monitor) -->
+      <button id="btn-popout" class="btn" title="Abrir bolinhas em nova aba/janela para segundo monitor">
+        ↗ Abrir Bolinhas em Nova Aba
+      </button>
+    </div>
+  </header>
+
+  <!-- Container com os Dois Módulos em IFRAMES -->
+  <main id="main-container" class="main-view-container">
+    <!-- Card 1: Detector MediaPipe -->
+    <div class="iframe-card" id="card-detector">
+      <div class="card-header">
+        <span>Detector Neural de Piscadas (MediaPipe + EAR)</span>
+        <a href="detector.html" target="_blank" class="btn" style="padding: 2px 8px; font-size: 0.75rem;">Abrir Isolado</a>
+      </div>
+      <div class="card-body">
+        <iframe id="iframe-detector" src="detector.html" allow="camera; microphone" title="Detector de Piscadas"></iframe>
+      </div>
+    </div>
+
+    <!-- Card 2: Sketch das Bolinhas (Processing portado) -->
+    <div class="iframe-card" id="card-bolinhas">
+      <div class="card-header">
+        <span>Visualizador Gráfico (Bolinhas_OSC_PISCADAS)</span>
+        <a href="bolinhas.html" target="_blank" class="btn" style="padding: 2px 8px; font-size: 0.75rem;">Abrir Isolado</a>
+      </div>
+      <div class="card-body">
+        <iframe id="iframe-bolinhas" src="bolinhas.html" title="Sketch das Bolinhas"></iframe>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/event_bus.js"></script>
+  <script>
+    const mainContainer = document.getElementById('main-container');
+    const btnSplit = document.getElementById('btn-view-split');
+    const btnDetector = document.getElementById('btn-view-detector');
+    const btnBolinhas = document.getElementById('btn-view-bolinhas');
+    const btnPopout = document.getElementById('btn-popout');
+
+    function setActiveBtn(activeBtn) {
+      [btnSplit, btnDetector, btnBolinhas].forEach(btn => btn.classList.remove('btn-primary'));
+      activeBtn.classList.add('btn-primary');
+    }
+
+    btnSplit.addEventListener('click', () => {
+      mainContainer.className = 'main-view-container';
+      setActiveBtn(btnSplit);
+    });
+
+    btnDetector.addEventListener('click', () => {
+      mainContainer.className = 'main-view-container view-detector-only';
+      setActiveBtn(btnDetector);
+    });
+
+    btnBolinhas.addEventListener('click', () => {
+      mainContainer.className = 'main-view-container view-bolinhas-only';
+      setActiveBtn(btnBolinhas);
+    });
+
+    btnPopout.addEventListener('click', () => {
+      window.open('bolinhas.html', '_blank', 'width=850,height=850');
+    });
+
+    // Monitoramento de eventos no frame pai (espelhamento)
+    window.oscBus.on('/piscou', (data) => {
+      // Caso queira inspecionar mensagens no console da pagina principal
+      // console.log('[Host OSC Event]', data);
+    });
+  </script>
+</body>
+</html>

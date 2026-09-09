@@ -1,0 +1,408 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detector de Piscadas - MediaPipe</title>
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- MediaPipe Face Mesh via CDN oficial -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+</head>
+<body style="background: #000;">
+  <div class="module-container">
+    <div class="viewport-wrapper">
+      <video id="webcam" playsinline autoplay muted></video>
+      <canvas id="output-canvas"></canvas>
+
+      <!-- HUD com métricas científicas e de depuração (estilo OpenCV original) -->
+      <div class="hud-overlay">
+        <div class="hud-item">
+          <span>STATUS:</span>
+          <span id="hud-status" class="hud-val">Iniciando...</span>
+        </div>
+        <div class="hud-item">
+          <span>FPS:</span>
+          <span id="hud-fps" class="hud-val">0</span>
+        </div>
+        <div class="hud-item">
+          <span>EAR Esquerdo (L):</span>
+          <span id="hud-ear-l" class="hud-val">0.00</span>
+        </div>
+        <div class="hud-item">
+          <span>EAR Direito (R):</span>
+          <span id="hud-ear-r" class="hud-val">0.00</span>
+        </div>
+        <div class="hud-item">
+          <span>EAR Médio:</span>
+          <span id="hud-ear-med" class="hud-val">0.00</span>
+        </div>
+        <div class="hud-item">
+          <span>Piscadas Detectadas:</span>
+          <span id="hud-blinks" class="hud-val active">0</span>
+        </div>
+      </div>
+
+      <!-- Indicador visual em tempo real (Círculo de piscada) -->
+      <div id="blink-indicator" class="blink-indicator">
+        👀
+      </div>
+    </div>
+
+    <!-- Barra de Calibração e Seleção de Câmera -->
+    <div class="control-bar" style="flex-wrap: wrap; gap: 8px;">
+      <!-- Seletor de Câmera -->
+      <div class="control-group">
+        <label for="select-camera" style="font-weight: 600; color: #58a6ff;">📹 Câmera:</label>
+        <select id="select-camera" class="btn" style="padding: 4px 8px; font-size: 0.8rem; max-width: 180px; background: #161b22; color: #f0f3f6;">
+          <option value="">Carregando câmeras...</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="slider-fechar">Fechar:</label>
+        <input type="range" id="slider-fechar" min="0.10" max="0.30" step="0.01" value="0.19">
+        <span id="val-fechar" class="hud-val">0.19</span>
+      </div>
+
+      <div class="control-group">
+        <label for="slider-abrir">Abrir:</label>
+        <input type="range" id="slider-abrir" min="0.15" max="0.35" step="0.01" value="0.24">
+        <span id="val-abrir" class="hud-val">0.24</span>
+      </div>
+
+      <div class="control-group">
+        <label><input type="checkbox" id="chk-landmarks" checked> Traços Faciais</label>
+        <label><input type="checkbox" id="chk-mirror" checked> Espelhar</label>
+      </div>
+
+      <button id="btn-test-blink" class="btn btn-primary" title="Simular piscada manualmente">
+        ⚡ Testar
+      </button>
+    </div>
+  </div>
+
+  <script src="js/event_bus.js"></script>
+  <script src="js/ear_detector.js"></script>
+  <script>
+    const videoElement = document.getElementById('webcam');
+    const canvasElement = document.getElementById('output-canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+
+    const selectCamera = document.getElementById('select-camera');
+    const hudStatus = document.getElementById('hud-status');
+    const hudFps = document.getElementById('hud-fps');
+    const hudEarL = document.getElementById('hud-ear-l');
+    const hudEarR = document.getElementById('hud-ear-r');
+    const hudEarMed = document.getElementById('hud-ear-med');
+    const hudBlinks = document.getElementById('hud-blinks');
+    const blinkIndicator = document.getElementById('blink-indicator');
+
+    const sliderFechar = document.getElementById('slider-fechar');
+    const sliderAbrir = document.getElementById('slider-abrir');
+    const valFechar = document.getElementById('val-fechar');
+    const valAbrir = document.getElementById('val-abrir');
+    const chkLandmarks = document.getElementById('chk-landmarks');
+    const chkMirror = document.getElementById('chk-mirror');
+    const btnTestBlink = document.getElementById('btn-test-blink');
+
+    let fpsCount = 0;
+    let lastFpsTime = performance.now();
+    let currentFps = 0;
+    let currentStream = null;
+    let isProcessing = false;
+    let animFrameId = null;
+
+    // Instancia o detector com histerese
+    const blinkDetector = new BlinkDetector({
+      thresholdClose: parseFloat(sliderFechar.value),
+      thresholdOpen: parseFloat(sliderAbrir.value),
+      onBlink: (info) => {
+        window.oscBus.send('/piscou', info);
+      }
+    });
+
+    sliderFechar.addEventListener('input', (e) => {
+      const v = parseFloat(e.target.value);
+      valFechar.innerText = v.toFixed(2);
+      blinkDetector.setThresholds(v, parseFloat(sliderAbrir.value));
+    });
+
+    sliderAbrir.addEventListener('input', (e) => {
+      const v = parseFloat(e.target.value);
+      valAbrir.innerText = v.toFixed(2);
+      blinkDetector.setThresholds(parseFloat(sliderFechar.value), v);
+    });
+
+    btnTestBlink.addEventListener('click', () => {
+      window.oscBus.send('/piscou', { earL: 0.15, earR: 0.15, manual: true });
+    });
+
+    // Inicializa MediaPipe FaceMesh
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    faceMesh.onResults(onFaceMeshResults);
+
+    function onFaceMeshResults(results) {
+      fpsCount++;
+      const now = performance.now();
+      if (now - lastFpsTime >= 1000) {
+        currentFps = fpsCount;
+        fpsCount = 0;
+        lastFpsTime = now;
+        hudFps.innerText = currentFps;
+      }
+
+      const w = canvasElement.width = videoElement.videoWidth || 640;
+      const h = canvasElement.height = videoElement.videoHeight || 480;
+
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, w, h);
+
+      if (chkMirror.checked) {
+        canvasCtx.translate(w, 0);
+        canvasCtx.scale(-1, 1);
+      }
+
+      canvasCtx.drawImage(results.image, 0, 0, w, h);
+
+      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        hudStatus.innerText = 'Face Detectada';
+        hudStatus.style.color = '#00d26a';
+        const landmarks = results.multiFaceLandmarks[0];
+
+        const analysis = blinkDetector.processLandmarks(landmarks, w, h);
+
+        hudEarL.innerText = analysis.earL.toFixed(2);
+        hudEarR.innerText = analysis.earR.toFixed(2);
+        hudEarMed.innerText = analysis.earMed.toFixed(2);
+        hudBlinks.innerText = analysis.blinkCount;
+
+        if (analysis.isEyeClosed) {
+          blinkIndicator.classList.add('closed');
+          blinkIndicator.innerText = '😉';
+
+          const forehead = landmarks[10] || landmarks[9] || landmarks[151];
+          if (forehead) {
+            canvasCtx.beginPath();
+            canvasCtx.arc(forehead.x * w, forehead.y * h, 14, 0, 2 * Math.PI);
+            canvasCtx.fillStyle = '#00d26a';
+            canvasCtx.fill();
+            canvasCtx.lineWidth = 2.5;
+            canvasCtx.strokeStyle = '#ffffff';
+            canvasCtx.stroke();
+          }
+        } else {
+          blinkIndicator.classList.remove('closed');
+          blinkIndicator.innerText = '👀';
+        }
+
+        if (chkLandmarks.checked) {
+          drawEconomicFaceWireframe(canvasCtx, landmarks, w, h);
+        }
+      } else {
+        hudStatus.innerText = 'Procurando Face...';
+        hudStatus.style.color = '#e3b341';
+        blinkIndicator.classList.remove('closed');
+      }
+
+      canvasCtx.restore();
+    }
+
+    // Desenha linhas de contorno expressivas e economicas (Inspirado no modelo 68 pontos / DLib)
+    function drawEconomicFaceWireframe(ctx, landmarks, w, h) {
+      const features = [
+        // Contorno da mandibula / queixo
+        { pts: [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109], close: false, stroke: "rgba(0, 229, 255, 0.35)", width: 1.2 },
+        // Sobrancelha Esquerda
+        { pts: [70, 63, 105, 66, 107], close: false, stroke: "#00e5ff", width: 1.8 },
+        // Sobrancelha Direita
+        { pts: [336, 296, 334, 293, 300], close: false, stroke: "#00e5ff", width: 1.8 },
+        // Nariz - Dorso e ponta
+        { pts: [168, 6, 197, 195, 5, 4, 1], close: false, stroke: "rgba(0, 229, 255, 0.6)", width: 1.5 },
+        // Nariz - Base
+        { pts: [98, 97, 2, 326, 327], close: false, stroke: "rgba(0, 229, 255, 0.6)", width: 1.5 },
+        // Olho Esquerdo (Contorno completo com fechamento)
+        { pts: [33, 160, 158, 133, 153, 144], close: true, stroke: "#00ff88", width: 2.0 },
+        // Olho Direito (Contorno completo com fechamento)
+        { pts: [362, 385, 387, 263, 373, 380], close: true, stroke: "#00ff88", width: 2.0 },
+        // Labios - Contorno Externo
+        { pts: [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 409, 270, 269, 267, 0, 37, 39, 40, 185], close: true, stroke: "rgba(255, 215, 0, 0.75)", width: 1.5 },
+        // Labios - Linha de abertura interna
+        { pts: [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308], close: false, stroke: "rgba(255, 215, 0, 0.5)", width: 1.0 }
+      ];
+
+      features.forEach(feat => {
+        ctx.beginPath();
+        ctx.lineWidth = feat.width;
+        ctx.strokeStyle = feat.stroke;
+        
+        let first = true;
+        feat.pts.forEach(idx => {
+          const pt = landmarks[idx];
+          if (pt) {
+            const px = pt.x * w;
+            const py = pt.y * h;
+            if (first) {
+              ctx.moveTo(px, py);
+              first = false;
+            } else {
+              ctx.lineTo(px, py);
+            }
+          }
+        });
+        if (feat.close) ctx.closePath();
+        ctx.stroke();
+      });
+
+      // Desenha pontos fiduciais discretos nos vertices principais
+      const fiducialPoints = [
+        33, 133, 362, 263, // Cantos dos olhos
+        1, 4, 197,         // Ponta do nariz
+        61, 291, 0, 17,    // Boca (comissuras e centro)
+        70, 107, 336, 300, // Extremidades das sobrancelhas
+        152                // Ponta do queixo
+      ];
+      ctx.fillStyle = "#ffffff";
+      fiducialPoints.forEach(idx => {
+        const pt = landmarks[idx];
+        if (pt) {
+          ctx.beginPath();
+          ctx.arc(pt.x * w, pt.y * h, 2, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      });
+    }
+
+    // Loop de processamento continuo por frame
+    async function processVideoFrame() {
+      if (videoElement.readyState >= 2 && !isProcessing) {
+        isProcessing = true;
+        try {
+          await faceMesh.send({ image: videoElement });
+        } catch (err) {
+          console.error('Erro no faceMesh:', err);
+        } finally {
+          isProcessing = false;
+        }
+      }
+      animFrameId = requestAnimationFrame(processVideoFrame);
+    }
+
+    // Listagem e selecao de cameras
+    async function listCameras() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+
+        selectCamera.innerHTML = '';
+        if (videoDevices.length === 0) {
+          selectCamera.innerHTML = '<option value="">Nenhuma câmera detectada</option>';
+          return;
+        }
+
+        videoDevices.forEach((device, index) => {
+          const opt = document.createElement('option');
+          opt.value = device.deviceId;
+          opt.text = device.label || `Câmera ${index + 1}`;
+          selectCamera.appendChild(opt);
+        });
+
+        // Tenta recuperar camera salva no localStorage
+        const savedCam = localStorage.getItem('selected_camera_id');
+        if (savedCam && videoDevices.some(d => d.deviceId === savedCam)) {
+          selectCamera.value = savedCam;
+        }
+      } catch (err) {
+        console.error('Erro ao listar cameras:', err);
+      }
+    }
+
+    // Inicia camera especifica por deviceId
+    async function startCamera(deviceId = null) {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+      }
+
+      hudStatus.innerText = 'Conectando Câmera...';
+      hudStatus.style.color = '#58a6ff';
+
+      const constraints = {
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          deviceId: deviceId ? { exact: deviceId } : undefined
+        },
+        audio: false
+      };
+
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoElement.srcObject = currentStream;
+        await videoElement.play();
+
+        hudStatus.innerText = 'Câmera Ativa';
+        hudStatus.style.color = '#00d26a';
+
+        // Atualiza a lista com os nomes reais das câmeras (agora com permissão concedida)
+        await listCameras();
+        if (deviceId) {
+          selectCamera.value = deviceId;
+          localStorage.setItem('selected_camera_id', deviceId);
+        } else {
+          // Salva a que foi aberta por padrao
+          const activeTrack = currentStream.getVideoTracks()[0];
+          const settings = activeTrack ? activeTrack.getSettings() : null;
+          if (settings && settings.deviceId) {
+            selectCamera.value = settings.deviceId;
+            localStorage.setItem('selected_camera_id', settings.deviceId);
+          }
+        }
+
+        processVideoFrame();
+      } catch (err) {
+        console.error('Erro ao abrir camera:', err);
+        hudStatus.innerText = 'Erro ao abrir Câmera';
+        hudStatus.style.color = '#f85149';
+      }
+    }
+
+    // Troca de camera pelo dropdown
+    selectCamera.addEventListener('change', (e) => {
+      const devId = e.target.value;
+      if (devId) {
+        startCamera(devId);
+      }
+    });
+
+    // Inicializacao
+    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      .then((stream) => {
+        // Concedeu permissao: encerra o stream temporario e inicia a camera selecionada/salva
+        stream.getTracks().forEach(t => t.stop());
+        const savedCam = localStorage.getItem('selected_camera_id');
+        startCamera(savedCam || null);
+      })
+      .catch((err) => {
+        console.error('Permissao negada:', err);
+        hudStatus.innerText = 'Permissão Negada';
+        hudStatus.style.color = '#f85149';
+        alert('Permissão para a câmera foi negada. Clique no ícone de cadeado/câmera na barra do navegador para autorizar.');
+      });
+  </script>
+</body>
+</html>
+
+

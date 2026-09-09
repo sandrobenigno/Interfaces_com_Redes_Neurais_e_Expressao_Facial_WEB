@@ -1,0 +1,44 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bolinhas OSC Piscadas - p5.js</title>
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- p5.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+</head>
+<body style="background: #000;">
+  <div class="module-container">
+    <!-- Container onde o Canvas do p5.js será inserido -->
+    <div id="canvas-container" class="viewport-wrapper"></div>
+
+    <!-- Barra de status e controles do sketch -->
+    <div class="control-bar">
+      <div class="control-group">
+        <span>Bolinhas Geradas:</span>
+        <span id="bolinhas-count" class="hud-val">0 / 500</span>
+      </div>
+
+      <div class="control-group">
+        <span style="color: var(--text-muted); font-size: 0.78rem;">
+          (Limpa automaticamente com 500 ou tecla/botão)
+        </span>
+      </div>
+
+      <div class="control-group">
+        <button class="btn btn-primary" onclick="window.manualTriggerBlink()">
+          ➕ Adicionar Bolinha
+        </button>
+        <button class="btn btn-danger" onclick="window.manualClearCanvas()">
+          🧹 Limpar Tela
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/event_bus.js"></script>
+  <script src="js/bolinhas_sketch.js"></script>
+</body>
+</html>
