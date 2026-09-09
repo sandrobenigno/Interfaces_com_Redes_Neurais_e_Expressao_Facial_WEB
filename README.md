@@ -1,10 +1,13 @@
-﻿# Interfaces com Redes Neurais e Expressão Facial - Web (MediaPipe + p5.js)
+# Interfaces com Redes Neurais e Expressão Facial - Web (MediaPipe + p5.js)
 
 Esta aplicação é a migração e evolução para ambiente Web do projeto original **Interfaces com Redes Neurais e Expressão Facial** (criado por Sandro Benigno).
 
 A versão original utilizava Python, OpenCV, ONNX (RFB-320 e PFLD) e enviava mensagens UDP/OSC (`/piscou`) para um sketch em Java no Processing (`Bolinhas_OSC_PISCADAS.pde`).
 
-Nesta versão Web, **tudo roda 100% no navegador (Client-Side)**, ideal para publicação direta no **GitHub Pages**, sem a necessidade de instalar Python, drivers de câmera locais ou bibliotecas nativas.
+Nesta versão Web, tudo roda 100% no navegador (Client-Side), sem a necessidade de instalar Python, drivers de câmera locais ou bibliotecas nativas.
+
+🔗 **Acesse a aplicação online no GitHub Pages:**  
+👉 [https://sandrobenigno.github.io/Interfaces_com_Redes_Neurais_e_Expressao_Facial_WEB/](https://sandrobenigno.github.io/Interfaces_com_Redes_Neurais_e_Expressao_Facial_WEB/)
 
 ---
 
