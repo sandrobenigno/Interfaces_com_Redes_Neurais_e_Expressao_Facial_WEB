@@ -76,6 +76,14 @@
         <label><input type="checkbox" id="chk-mirror" checked> Espelhar</label>
       </div>
 
+      <!-- Toggle OSC Bridge discreto -->
+      <div class="control-group" style="border-left: 1px solid var(--border-color); padding-left: 8px;">
+        <label title="Conectar ao script bridge Python para enviar UDP/OSC ao PureData">
+          <input type="checkbox" id="chk-osc-bridge"> 📡 OSC UDP
+        </label>
+        <span id="osc-status-dot" style="font-size: 0.75rem; color: var(--text-muted);" title="Status da Ponte OSC">⚪</span>
+      </div>
+
       <button id="btn-test-blink" class="btn btn-primary" title="Simular piscada manualmente">
         ⚡ Testar
       </button>
@@ -105,6 +113,30 @@
     const chkLandmarks = document.getElementById('chk-landmarks');
     const chkMirror = document.getElementById('chk-mirror');
     const btnTestBlink = document.getElementById('btn-test-blink');
+    const chkOscBridge = document.getElementById('chk-osc-bridge');
+    const oscStatusDot = document.getElementById('osc-status-dot');
+
+    if (window.oscBus) {
+      window.oscBus.onBridgeStatusChange = (status) => {
+        if (status === 'connected') {
+          oscStatusDot.innerText = '🟢 Ativo';
+          oscStatusDot.style.color = '#00d26a';
+        } else if (status === 'connecting') {
+          oscStatusDot.innerText = '🟡 Conectando...';
+          oscStatusDot.style.color = '#e3b341';
+        } else if (status === 'disconnected') {
+          oscStatusDot.innerText = '🔴 Off';
+          oscStatusDot.style.color = '#f85149';
+        } else {
+          oscStatusDot.innerText = '⚪';
+          oscStatusDot.style.color = 'var(--text-muted)';
+        }
+      };
+
+      chkOscBridge.addEventListener('change', (e) => {
+        window.oscBus.setBridgeEnabled(e.target.checked);
+      });
+    }
 
     let fpsCount = 0;
     let lastFpsTime = performance.now();
@@ -404,5 +436,6 @@
   </script>
 </body>
 </html>
+
 
 

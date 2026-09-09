@@ -70,3 +70,25 @@ npx serve .
 - **Teclado (em qualquer tela)**: Pressionar qualquer tecla limpa a tela de bolinhas (reseta a contagem).
 - **Botão "⚡ Testar Piscada"**: Simula o recebimento do sinal `/piscou` sem precisar piscar os olhos (útil para testes rápidos).
 - **Botão "↗ Abrir Bolinhas em Nova Aba"**: Abre o sketch em uma janela separada. Por usar `BroadcastChannel`, as piscadas capturadas na câmera continuam alimentando as bolinhas na outra janela/monitor em tempo real!
+
+---
+
+## 📡 Integração com PureData, Processing e DAWs via OSC (UDP)
+
+A aplicação continua rodando diretamente pelo **GitHub Pages** (ou localmente). Para enviar mensagens OSC para softwares como **PureData**, **Processing**, **SuperCollider** ou **Reaper**, você só precisa iniciar o script de ponte (*bridge*) no seu computador:
+
+### 1. Instale as dependências da bridge (apenas na primeira vez):
+```bash
+pip install websockets python-osc
+```
+
+### 2. Execute a bridge apontando para a porta UDP desejada:
+Exemplo para o PureData escutando na porta **`12345`**:
+```bash
+python bridge/bridge_osc.py --port 12345
+```
+*(Se omitir a porta, o padrão é 12345. Para apontar para outra máquina na rede: `--ip 192.168.1.50 --port 12345`)*
+
+### 3. Ative o envio na interface Web:
+- Na barra inferior do detector, basta marcar a caixinha **`[x] 📡 OSC UDP`**.
+- O indicador mostrará `🟢 Ativo`. A cada piscada detectada, o pacote binário OSC com endereço `/piscou` e os valores de `[earL, earR]` será despachado via UDP para a porta configurada!

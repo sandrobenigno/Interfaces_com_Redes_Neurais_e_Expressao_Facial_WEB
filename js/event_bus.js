@@ -1,13 +1,19 @@
 ﻿/**
  * EventBus - Comunicacao Desacoplada estilo OSC para Web
  * 
- * Utiliza BroadcastChannel (funciona entre iframes, abas e janelas diferentes)
- * com fallback e espelhamento em window.postMessage para compatibilidade total.
+ * - BroadcastChannel / postMessage: sincroniza iframes, abas e janelas no browser
+ * - WebSocket Bridge (Opcional): envia pacotes para ponte local em Python/Node que despacha UDP/OSC
  */
 class OSCEventBus {
   constructor(channelName = 'neural_facial_osc') {
     this.channelName = channelName;
     this.listeners = new Map();
+
+    // Estado da Bridge WebSocket
+    this.ws = null;
+    this.wsEnabled = false;
+    this.wsUrl = 'ws://127.0.0.1:8081';
+    this.onBridgeStatusChange = null;
 
     // Inicializa BroadcastChannel se disponivel
     if (typeof BroadcastChannel !== 'undefined') {
@@ -17,7 +23,6 @@ class OSCEventBus {
       };
     } else {
       this.channel = null;
-      console.warn('BroadcastChannel nao suportado neste navegador. Usando postMessage.');
     }
 
     // Escuta window.postMessage (iframes locais)
@@ -26,6 +31,53 @@ class OSCEventBus {
         this._dispatch(event.data.payload);
       }
     });
+  }
+
+  /**
+   * Ativa ou desativa a ponte WebSocket -> OSC UDP
+   */
+  setBridgeEnabled(enabled, url = 'ws://127.0.0.1:8081') {
+    this.wsEnabled = enabled;
+    this.wsUrl = url;
+
+    if (!enabled) {
+      if (this.ws) {
+        this.ws.close();
+        this.ws = null;
+      }
+      if (this.onBridgeStatusChange) this.onBridgeStatusChange('disabled');
+      return;
+    }
+
+    this._connectWebSocket();
+  }
+
+  _connectWebSocket() {
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    if (this.onBridgeStatusChange) this.onBridgeStatusChange('connecting');
+
+    try {
+      this.ws = new WebSocket(this.wsUrl);
+
+      this.ws.onopen = () => {
+        if (this.onBridgeStatusChange) this.onBridgeStatusChange('connected');
+      };
+
+      this.ws.onclose = () => {
+        if (this.wsEnabled) {
+          if (this.onBridgeStatusChange) this.onBridgeStatusChange('disconnected');
+        }
+      };
+
+      this.ws.onerror = (err) => {
+        if (this.onBridgeStatusChange) this.onBridgeStatusChange('error');
+      };
+    } catch (e) {
+      if (this.onBridgeStatusChange) this.onBridgeStatusChange('error');
+    }
   }
 
   /**
@@ -44,9 +96,7 @@ class OSCEventBus {
     if (this.channel) {
       try {
         this.channel.postMessage(payload);
-      } catch (err) {
-        console.error('Erro ao enviar via BroadcastChannel:', err);
-      }
+      } catch (err) {}
     }
 
     // 2. Notifica o proprio frame
@@ -64,13 +114,17 @@ class OSCEventBus {
         iframe.contentWindow.postMessage({ channel: this.channelName, payload }, '*');
       }
     });
+
+    // 5. Envia via WebSocket para a Bridge Python se estiver conectado
+    if (this.wsEnabled && this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        this.ws.send(JSON.stringify(payload));
+      } catch (err) {
+        console.error('Erro ao enviar para WebSocket Bridge:', err);
+      }
+    }
   }
 
-  /**
-   * Registra um listener para um determinado endereco OSC
-   * @param {string} address Ex: "/piscou" ou "*" para todos
-   * @param {Function} callback 
-   */
   on(address, callback) {
     if (!this.listeners.has(address)) {
       this.listeners.set(address, new Set());
@@ -78,9 +132,6 @@ class OSCEventBus {
     this.listeners.get(address).add(callback);
   }
 
-  /**
-   * Remove um listener
-   */
   off(address, callback) {
     if (this.listeners.has(address)) {
       this.listeners.get(address).delete(callback);
@@ -90,29 +141,18 @@ class OSCEventBus {
   _dispatch(payload) {
     if (!payload || !payload.address) return;
 
-    // Callbacks do endereco especifico
     if (this.listeners.has(payload.address)) {
       this.listeners.get(payload.address).forEach((cb) => {
-        try {
-          cb(payload.data, payload);
-        } catch (e) {
-          console.error(`Erro no listener para ${payload.address}:`, e);
-        }
+        try { cb(payload.data, payload); } catch (e) {}
       });
     }
 
-    // Callbacks globais wildcard '*'
     if (this.listeners.has('*')) {
       this.listeners.get('*').forEach((cb) => {
-        try {
-          cb(payload.data, payload);
-        } catch (e) {
-          console.error('Erro no listener coringa (*):', e);
-        }
+        try { cb(payload.data, payload); } catch (e) {}
       });
     }
   }
 }
 
-// Instancia global para uso direto
 window.oscBus = new OSCEventBus();
