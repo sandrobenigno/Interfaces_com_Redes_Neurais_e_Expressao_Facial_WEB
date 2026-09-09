@@ -1,6 +1,6 @@
 # Interfaces com Redes Neurais e Expressão Facial - Web (MediaPipe + p5.js)
 
-Esta aplicação é a migração e evolução para ambiente Web do projeto original **Interfaces com Redes Neurais e Expressão Facial** (criado por Sandro Benigno).
+Esta aplicação é a migração e evolução para ambiente Web do projeto original [**Interfaces com Redes Neurais e Expressão Facial**](https://github.com/LAC-EBA-UFMG/Interfaces_com_Redes_Neurais_e_Expressao_Facial)
 
 A versão original utilizava Python, OpenCV, ONNX (RFB-320 e PFLD) e enviava mensagens UDP/OSC (`/piscou`) para um sketch em Java no Processing (`Bolinhas_OSC_PISCADAS.pde`).
 
@@ -61,15 +61,6 @@ Depois, abra no navegador: [http://localhost:8080](http://localhost:8080)
 ```bash
 npx serve .
 ```
-
----
-
-## 🌐 Como Publicar no GitHub Pages
-
-1. Crie um repositório no GitHub (ou adicione estes arquivos em uma branch no seu repositório).
-2. Vá em **Settings** > **Pages** no seu repositório no GitHub.
-3. Em **Branch**, selecione `main` (ou a branch onde estiver o projeto) e a pasta `/ (root)`.
-4. Clique em **Save**. Em instantes seu link estará ativo (ex: `https://seu-usuario.github.io/seu-repositorio/`).
 
 ---
 
