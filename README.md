@@ -6,6 +6,8 @@ A versão original utilizava Python, OpenCV, ONNX (RFB-320 e PFLD) e enviava men
 
 Nesta versão Web, tudo roda 100% no navegador (Client-Side), sem a necessidade de instalar Python, drivers de câmera locais ou bibliotecas nativas.
 
+![](img/preview.jpg)
+
 🔗 **Acesse a aplicação online no GitHub Pages:**  
 👉 [https://sandrobenigno.github.io/Interfaces_com_Redes_Neurais_e_Expressao_Facial_WEB/](https://sandrobenigno.github.io/Interfaces_com_Redes_Neurais_e_Expressao_Facial_WEB/)
 
