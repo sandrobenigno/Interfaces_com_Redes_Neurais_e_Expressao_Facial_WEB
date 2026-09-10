@@ -40,8 +40,7 @@ function setup() {
 
 function windowResized() {
   const container = document.getElementById('canvas-container');
-  if (container) {
-    // Redimensiona o canvas sem limpar o conteudo ja desenhado
+  if (container && container.clientWidth > 0 && container.clientHeight > 0) {
     const prevGraphics = get();
     resizeCanvas(container.clientWidth, container.clientHeight);
     background(0);
@@ -83,13 +82,42 @@ function keyPressed() {
   limparTela();
 }
 
+// Suporte a toque para mobile:
+// Toque simples: adiciona bolinha na tela
+// Toque duplo ou manter pressionado: limpa a tela
+let lastTouchTime = 0;
+
+function touchStarted() {
+  // Ignora se o toque foi em botões da barra inferior
+  if (event && event.target && event.target.tagName === "BUTTON") return;
+
+  const now = millis();
+  if (now - lastTouchTime < 350) {
+    limparTela();
+  } else {
+    if (touches.length > 0) {
+      bolinhaX = Math.floor(touches[0].x);
+      bolinhaY = Math.floor(touches[0].y);
+    } else {
+      bolinhaX = Math.floor(mouseX || random(0, width));
+      bolinhaY = Math.floor(mouseY || random(0, height));
+    }
+    bolinhaR = Math.floor(random(0, 255));
+    bolinhaG = Math.floor(random(0, 255));
+    bolinhaB = Math.floor(random(0, 255));
+    bolinhaRaio = Math.floor(random(15, 50));
+    oscRecebido = true;
+  }
+  lastTouchTime = now;
+}
+
 // Trata o recebimento do evento /piscou
 function onMensagemPiscou(data) {
-  // Sorteia posicao dentro das dimensoes atuais da tela
-  bolinhaX = Math.floor(random(0, width));
-  bolinhaY = Math.floor(random(0, height));
-  
-  // Sorteia cor e raio
+  const curW = width > 50 ? width : (window.innerWidth || 800);
+  const curH = height > 50 ? height : (window.innerHeight || 800);
+
+  bolinhaX = Math.floor(random(0, curW));
+  bolinhaY = Math.floor(random(0, curH));
   bolinhaR = Math.floor(random(0, 255));
   bolinhaG = Math.floor(random(0, 255));
   bolinhaB = Math.floor(random(0, 255));
@@ -117,3 +145,5 @@ window.manualTriggerBlink = () => {
 window.manualClearCanvas = () => {
   limparTela();
 };
+
+

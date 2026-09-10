@@ -294,9 +294,100 @@ body {
 }
 
 /* Responsividade mobile / telas menores */
+
+/* =========================================================
+   MELHORIAS DE RESPONSIVIDADE E INTERAÇÃO MOBILE
+   ========================================================= */
+
+/* Botões com área de toque mínima confortável (44px) */
+.btn {
+  min-height: 38px;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+
+
+.hud-overlay.collapsed {
+  display: none !important;
+}
+
+/* Responsividade Mobile (< 768px) */
 @media (max-width: 768px) {
+  /* Header em formato compacto */
+  .app-header {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .app-title h1 {
+    font-size: 0.95rem;
+  }
+
+  .header-controls {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .header-controls .btn {
+    white-space: nowrap;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+
+  /* Split view em mobile com proporções equilibradas */
   .main-view-container {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
+    padding: 4px;
+    gap: 6px;
+  }
+
+  /* HUD flutuante no mobile */
+  .hud-overlay {
+    top: 10px;
+    left: 8px;
+    max-width: 220px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    gap: 4px;
+  }
+
+  /* Barra de controle inferior adaptável */
+  .control-bar {
+    padding: 8px 10px;
+    gap: 8px;
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  .control-group {
+    font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+
+  .control-group input[type="range"] {
+    width: 80px;
+  }
+
+  #select-camera {
+    max-width: 130px !important;
+  }
+
+  /* Indicador visual de piscada menor em tela pequena */
+  .blink-indicator {
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
   }
 }
+
+

@@ -91,11 +91,18 @@
       window.open('bolinhas.html', '_blank', 'width=850,height=850');
     });
 
-    // Monitoramento de eventos no frame pai (espelhamento)
-    window.oscBus.on('/piscou', (data) => {
-      // Caso queira inspecionar mensagens no console da pagina principal
-      // console.log('[Host OSC Event]', data);
+    // Garante que qualquer mensagem /piscou recebida no host seja retransmitida a todos os iframes
+    window.oscBus.on('/piscou', (data, payload) => {
+      const iframes = document.querySelectorAll('iframe');
+      iframes.forEach((iframe) => {
+        try {
+          if (iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ channel: 'neural_facial_osc', payload }, '*');
+          }
+        } catch (e) {}
+      });
     });
   </script>
 </body>
 </html>
+

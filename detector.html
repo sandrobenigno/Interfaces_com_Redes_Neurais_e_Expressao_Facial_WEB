@@ -15,8 +15,10 @@
       <video id="webcam" playsinline autoplay muted></video>
       <canvas id="output-canvas"></canvas>
 
-      <!-- HUD com métricas científicas e de depuração (estilo OpenCV original) -->
-      <div class="hud-overlay">
+
+
+      <!-- HUD com métricas científicas e de depuração -->
+      <div id="hud-panel" class="hud-overlay">
         <div class="hud-item">
           <span>STATUS:</span>
           <span id="hud-status" class="hud-val">Iniciando...</span>
@@ -51,12 +53,15 @@
 
     <!-- Barra de Calibração e Seleção de Câmera -->
     <div class="control-bar" style="flex-wrap: wrap; gap: 8px;">
-      <!-- Seletor de Câmera -->
+      <!-- Seletor de Câmera + Botão Flip -->
       <div class="control-group">
         <label for="select-camera" style="font-weight: 600; color: #58a6ff;">📹 Câmera:</label>
         <select id="select-camera" class="btn" style="padding: 4px 8px; font-size: 0.8rem; max-width: 180px; background: #161b22; color: #f0f3f6;">
-          <option value="">Carregando câmeras...</option>
+          <option value="">Carregando...</option>
         </select>
+        <button id="btn-flip-camera" class="btn" title="Alternar câmera frontal / traseira" style="padding: 4px 8px;">
+          🔄
+        </button>
       </div>
 
       <div class="control-group">
@@ -83,6 +88,10 @@
         </label>
         <span id="osc-status-dot" style="font-size: 0.75rem; color: var(--text-muted);" title="Status da Ponte OSC">⚪</span>
       </div>
+
+            <button id="btn-toggle-hud" class="btn" title="Exibir ou ocultar métricas de EAR e FPS">
+        📊 Métricas
+      </button>
 
       <button id="btn-test-blink" class="btn btn-primary" title="Simular piscada manualmente">
         ⚡ Testar
@@ -113,6 +122,25 @@
     const chkLandmarks = document.getElementById('chk-landmarks');
     const chkMirror = document.getElementById('chk-mirror');
     const btnTestBlink = document.getElementById('btn-test-blink');
+    const btnToggleHud = document.getElementById('btn-toggle-hud');
+    const hudPanel = document.getElementById('hud-panel');
+    const btnFlipCamera = document.getElementById('btn-flip-camera');
+
+    // Recolher/Exibir painel de métricas
+    btnToggleHud.addEventListener('click', () => {
+      const isHidden = hudPanel.classList.toggle('collapsed');
+      btnToggleHud.classList.toggle('btn-primary', !isHidden);
+    });
+
+    // Alternar câmera frontal/traseira rapidamente
+    btnFlipCamera.addEventListener('click', () => {
+      if (selectCamera.options.length > 1) {
+        let nextIndex = (selectCamera.selectedIndex + 1) % selectCamera.options.length;
+        selectCamera.selectedIndex = nextIndex;
+        const nextId = selectCamera.value;
+        if (nextId) startCamera(nextId);
+      }
+    });
     const chkOscBridge = document.getElementById('chk-osc-bridge');
     const oscStatusDot = document.getElementById('osc-status-dot');
 
@@ -436,6 +464,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 
