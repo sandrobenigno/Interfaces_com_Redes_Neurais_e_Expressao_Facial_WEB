@@ -5,6 +5,16 @@ Bridge WebSocket -> UDP/OSC para PureData, Processing, SuperCollider, etc.
 Recebe mensagens JSON da aplicacao Web (Broadcast/WebSocket) e despacha
 pacotes binarios UDP formatados segundo o padrao Open Sound Control (OSC).
 
+Mensagens suportadas:
+  - Evento:
+      /piscou          [float earL, float earR]
+  - Periodicos:
+      /head/angles     [float pitch, float roll, float yaw]
+      /eye/open        [float left, float right]
+      /mouth/mar       [float mar]
+
+      /brow/raise      [float browL, float browR]
+
 Uso:
   python bridge_osc.py --port 12345
   python bridge_osc.py --ip 127.0.0.1 --port 12345 --ws-port 8081
@@ -36,7 +46,7 @@ async def main():
     osc_client = SimpleUDPClient(args.ip, args.port)
 
     print("=" * 60)
-    print("   BRIDGE WEBSOCKET -> UDP / OSC")
+    print("   BRIDGE WEBSOCKET -> UDP / OSC EXPANDIDA")
     print("=" * 60)
     print(f" Servidor WebSocket: ws://{args.ws_host}:{args.ws_port}")
     print(f" Destino OSC (UDP) : {args.ip}:{args.port}")
@@ -54,22 +64,39 @@ async def main():
             async for raw_msg in websocket:
                 try:
                     payload = json.loads(raw_msg)
-                    address = payload.get("address", "/piscou")
+                    address = payload.get("address", "")
                     data = payload.get("data", {})
 
                     if address == "/piscou":
                         ear_l = float(data.get("earL", 0.0))
                         ear_r = float(data.get("earR", 0.0))
                         osc_client.send_message("/piscou", [ear_l, ear_r])
-                        print(f" -> OSC /piscou [{ear_l:.3f}, {ear_r:.3f}] enviado para {args.ip}:{args.port}")
+                        print(f" [EVENTO] /piscou -> ({ear_l:.2f}, {ear_r:.2f})")
 
-                    elif address == "/ear":
-                        ear_med = float(data.get("earMed", 0.0))
-                        osc_client.send_message("/ear", [ear_med])
+                    elif address == "/head/angles":
+                        pitch = float(data.get("pitch", 0.0))
+                        roll = float(data.get("roll", 0.0))
+                        yaw = float(data.get("yaw", 0.0))
+                        osc_client.send_message("/head/angles", [pitch, roll, yaw])
+
+                    elif address == "/eye/open":
+                        left = float(data.get("left", 0.0))
+                        right = float(data.get("right", 0.0))
+                        osc_client.send_message("/eye/open", [left, right])
+
+                    elif address == "/mouth/mar":
+                        mar = float(data.get("mar", 0.0))
+                        osc_client.send_message("/mouth/mar", [mar])
+
+
+
+                    elif address == "/brow/raise":
+                        left = float(data.get("left", 0.0))
+                        right = float(data.get("right", 0.0))
+                        osc_client.send_message("/brow/raise", [left, right])
 
                     else:
-                        # Encaminhamento generico de endereco/dados se aplicavel
-                        val = data.get("value", 1.0)
+                        val = float(data.get("value", 1.0))
                         osc_client.send_message(address, [val])
 
                 except json.JSONDecodeError:
@@ -91,3 +118,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print("\nBridge finalizada pelo usuario.")
+

@@ -91,4 +91,14 @@ python bridge/bridge_osc.py --port 12345
 
 ### 3. Ative o envio na interface Web:
 - Na barra inferior do detector, basta marcar a caixinha **`[x] 📡 OSC UDP`**.
-- O indicador mostrará `🟢 Ativo`. A cada piscada detectada, o pacote binário OSC com endereço `/piscou` e os valores de `[earL, earR]` será despachado via UDP para a porta configurada!
+- O indicador mostrará `🟢 Ativo`. A aplicação passa a emitir tanto o evento discreto de piscada quanto os fluxos periódicos de expressividade facial (~30 Hz):
+
+#### 📋 Mapa de Mensagens OSC (Discretas e Periódicas):
+
+| Endereço OSC | Tipos | Argumentos | Descrição |
+| :--- | :--- | :--- | :--- |
+| `/piscou` | `ff` | `[earL, earR]` | **(Evento)** Disparado no instante exato em que os olhos fecham |
+| `/head/angles` | `fff` | `[pitch, roll, yaw]` | **(Periódico)** Ângulos da cabeça em graus (Cima/Baixo, Inclinação, Giro) |
+| `/eye/open` | `ff` | `[left, right]` | **(Periódico)** Abertura ocular normalizada de `0.0` (fechado) a `1.0` (aberto) |
+| `/mouth/mar` | `f` | `[mar]` | **(Periódico)** Abertura vertical da boca (*Mouth Aspect Ratio*) |
+| `/brow/raise` | `ff` | `[left, right]` | **(Periódico)** Elevação das sobrancelhas normalizada de `0.0` (repouso) a `1.0` |

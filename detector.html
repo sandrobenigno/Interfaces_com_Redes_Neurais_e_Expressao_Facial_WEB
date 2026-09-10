@@ -17,31 +17,31 @@
 
 
 
-      <!-- HUD com métricas científicas e de depuração -->
+      <!-- HUD com métricas de Expressão e Pose Facial -->
       <div id="hud-panel" class="hud-overlay">
         <div class="hud-item">
           <span>STATUS:</span>
           <span id="hud-status" class="hud-val">Iniciando...</span>
         </div>
         <div class="hud-item">
-          <span>FPS:</span>
-          <span id="hud-fps" class="hud-val">0</span>
+          <span>FPS / Piscadas:</span>
+          <span class="hud-val"><span id="hud-fps">0</span> fps | <b id="hud-blinks" style="color:#00d26a;">0</b></span>
         </div>
         <div class="hud-item">
-          <span>EAR Esquerdo (L):</span>
-          <span id="hud-ear-l" class="hud-val">0.00</span>
+          <span>Olhos Norm (L/R):</span>
+          <span id="hud-eye-norm" class="hud-val">0.00 / 0.00</span>
         </div>
         <div class="hud-item">
-          <span>EAR Direito (R):</span>
-          <span id="hud-ear-r" class="hud-val">0.00</span>
+          <span>Pose (P/R/Y):</span>
+          <span id="hud-pose" class="hud-val">0° / 0° / 0°</span>
         </div>
         <div class="hud-item">
-          <span>EAR Médio:</span>
-          <span id="hud-ear-med" class="hud-val">0.00</span>
+          <span>Boca (MAR):</span>
+          <span id="hud-mouth" class="hud-val">0.00 / 0.00</span>
         </div>
         <div class="hud-item">
-          <span>Piscadas Detectadas:</span>
-          <span id="hud-blinks" class="hud-val active">0</span>
+          <span>Sobrancelhas (L/R):</span>
+          <span id="hud-brows" class="hud-val">0.00 / 0.00</span>
         </div>
       </div>
 
@@ -93,6 +93,8 @@
         📊 Métricas
       </button>
 
+
+
       <button id="btn-test-blink" class="btn btn-primary" title="Simular piscada manualmente">
         ⚡ Testar
       </button>
@@ -109,10 +111,15 @@
     const selectCamera = document.getElementById('select-camera');
     const hudStatus = document.getElementById('hud-status');
     const hudFps = document.getElementById('hud-fps');
-    const hudEarL = document.getElementById('hud-ear-l');
-    const hudEarR = document.getElementById('hud-ear-r');
-    const hudEarMed = document.getElementById('hud-ear-med');
     const hudBlinks = document.getElementById('hud-blinks');
+    const hudEyeNorm = document.getElementById('hud-eye-norm');
+    const hudPose = document.getElementById('hud-pose');
+    const hudMouth = document.getElementById('hud-mouth');
+    const hudBrows = document.getElementById('hud-brows');
+
+    // Intervalo de envio periódico (30 Hz = a cada ~33ms)
+    let lastPeriodicSendTime = 0;
+    const PERIODIC_INTERVAL_MS = 33;
     const blinkIndicator = document.getElementById('blink-indicator');
 
     const sliderFechar = document.getElementById('slider-fechar');
@@ -122,6 +129,7 @@
     const chkLandmarks = document.getElementById('chk-landmarks');
     const chkMirror = document.getElementById('chk-mirror');
     const btnTestBlink = document.getElementById('btn-test-blink');
+
     const btnToggleHud = document.getElementById('btn-toggle-hud');
     const hudPanel = document.getElementById('hud-panel');
     const btnFlipCamera = document.getElementById('btn-flip-camera');
@@ -213,39 +221,79 @@
     faceMesh.onResults(onFaceMeshResults);
 
     function onFaceMeshResults(results) {
-      fpsCount++;
-      const now = performance.now();
-      if (now - lastFpsTime >= 1000) {
-        currentFps = fpsCount;
-        fpsCount = 0;
-        lastFpsTime = now;
-        hudFps.innerText = currentFps;
-      }
+      try {
+        fpsCount++;
+        const now = performance.now();
+        if (now - lastFpsTime >= 1000) {
+          currentFps = fpsCount;
+          fpsCount = 0;
+          lastFpsTime = now;
+          hudFps.innerText = currentFps;
+        }
 
-      const w = canvasElement.width = videoElement.videoWidth || 640;
-      const h = canvasElement.height = videoElement.videoHeight || 480;
+        const w = canvasElement.width = videoElement.videoWidth || 640;
+        const h = canvasElement.height = videoElement.videoHeight || 480;
 
-      canvasCtx.save();
-      canvasCtx.clearRect(0, 0, w, h);
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, w, h);
 
-      if (chkMirror.checked) {
-        canvasCtx.translate(w, 0);
-        canvasCtx.scale(-1, 1);
-      }
+        if (chkMirror.checked) {
+          canvasCtx.translate(w, 0);
+          canvasCtx.scale(-1, 1);
+        }
 
-      canvasCtx.drawImage(results.image, 0, 0, w, h);
+        canvasCtx.drawImage(results.image, 0, 0, w, h);
 
-      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-        hudStatus.innerText = 'Face Detectada';
-        hudStatus.style.color = '#00d26a';
-        const landmarks = results.multiFaceLandmarks[0];
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+          hudStatus.innerText = 'Face Detectada';
+          hudStatus.style.color = '#00d26a';
+          const landmarks = results.multiFaceLandmarks[0];
 
-        const analysis = blinkDetector.processLandmarks(landmarks, w, h);
+          let analysis;
+          try {
+            analysis = blinkDetector.processLandmarks(landmarks, w, h);
+          } catch(err) {
+            console.error('Erro em processLandmarks:', err);
+            canvasCtx.restore();
+            return;
+          }
 
-        hudEarL.innerText = analysis.earL.toFixed(2);
-        hudEarR.innerText = analysis.earR.toFixed(2);
-        hudEarMed.innerText = analysis.earMed.toFixed(2);
         hudBlinks.innerText = analysis.blinkCount;
+        hudEyeNorm.innerText = `${analysis.eyeNormL.toFixed(2)} / ${analysis.eyeNormR.toFixed(2)}`;
+        hudPose.innerText = `${analysis.headPose.pitch.toFixed(0)}° / ${analysis.headPose.roll.toFixed(0)}° / ${analysis.headPose.yaw.toFixed(0)}°`;
+        hudMouth.innerText = `${analysis.mar.toFixed(2)}`;
+        hudBrows.innerText = `${analysis.brows.browL.toFixed(2)} / ${analysis.brows.browR.toFixed(2)}`;
+
+        // Envio periódico de fluxos contínuos via barramento OSC
+        if (now - lastPeriodicSendTime >= PERIODIC_INTERVAL_MS) {
+          lastPeriodicSendTime = now;
+
+          // 1. Ângulos da cabeça
+          window.oscBus.send('/head/angles', {
+            pitch: analysis.headPose.pitch,
+            roll: analysis.headPose.roll,
+            yaw: analysis.headPose.yaw
+          });
+
+          // 2. Abertura dos olhos normalizada (0.0 fechado a 1.0 aberto)
+          window.oscBus.send('/eye/open', {
+            left: analysis.eyeNormL,
+            right: analysis.eyeNormR
+          });
+
+          // 3. Abertura da boca (MAR)
+          window.oscBus.send('/mouth/mar', {
+            mar: analysis.mar
+          });
+
+
+
+          // 5. Elevação das sobrancelhas (BROW)
+          window.oscBus.send('/brow/raise', {
+            left: analysis.brows.browL,
+            right: analysis.brows.browR
+          });
+        }
 
         if (analysis.isEyeClosed) {
           blinkIndicator.classList.add('closed');
@@ -276,6 +324,9 @@
       }
 
       canvasCtx.restore();
+      } catch(globalErr) {
+        console.error('Erro geral em onFaceMeshResults:', globalErr);
+      }
     }
 
     // Desenha linhas de contorno expressivas e economicas (Inspirado no modelo 68 pontos / DLib)
@@ -464,6 +515,11 @@
   </script>
 </body>
 </html>
+
+
+
+
+
 
 
 
