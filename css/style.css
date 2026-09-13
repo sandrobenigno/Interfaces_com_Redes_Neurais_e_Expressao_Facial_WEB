@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg-primary: #0f1117;
   --bg-secondary: #1a1d27;
   --bg-panel: #232736;
@@ -312,17 +312,33 @@ body {
   display: none !important;
 }
 
-/* Responsividade Mobile (< 768px) */
-@media (max-width: 768px) {
+/* Responsividade Mobile e Telas Verticais (Smartphones e Tablets em retrato) */
+@media (max-width: 820px), (orientation: portrait) and (max-width: 1024px) {
+  body {
+    height: 100dvh; /* Garante altura exata desconsiderando barra de endereço do navegador móvel */
+  }
+
   /* Header em formato compacto */
   .app-header {
-    padding: 8px 12px;
+    padding: 6px 10px;
     flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .app-title {
     gap: 8px;
   }
 
   .app-title h1 {
-    font-size: 0.95rem;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
   }
 
   .header-controls {
@@ -330,63 +346,141 @@ body {
     overflow-x: auto;
     padding-bottom: 2px;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .header-controls::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
   }
 
   .header-controls .btn {
     white-space: nowrap;
-    padding: 6px 10px;
-    font-size: 0.78rem;
+    padding: 5px 9px;
+    font-size: 0.74rem;
+    min-height: 32px;
     flex-shrink: 0;
   }
 
-  /* Split view em mobile com proporções equilibradas */
+  /* Layout Mobile: Câmera na parte superior e Bolinhas na parte inferior */
   .main-view-container {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+    grid-template-rows: none;
     padding: 4px;
     gap: 6px;
+    height: calc(100% - 50px);
+  }
+
+  .main-view-container.view-detector-only #card-detector {
+    flex: 1 1 100%;
+    height: 100%;
+    display: flex;
+  }
+  .main-view-container.view-detector-only #card-bolinhas {
+    display: none !important;
+  }
+
+  .main-view-container.view-bolinhas-only #card-bolinhas {
+    flex: 1 1 100%;
+    height: 100%;
+    display: flex;
+  }
+  .main-view-container.view-bolinhas-only #card-detector {
+    display: none !important;
+  }
+
+  .iframe-card {
+    flex: 1 1 50%;
+    min-height: 0; /* Essencial para flexbox não transbordar no mobile */
+    height: 50%;
+  }
+
+  /* Ordem estrita: Câmera (detector) em cima, Bolinhas embaixo */
+  #card-detector {
+    order: 1;
+  }
+
+  #card-bolinhas {
+    order: 2;
+  }
+
+  .card-header {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .card-header span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+  }
+
+  .card-header .btn {
+    padding: 2px 6px;
+    min-height: 24px;
+    font-size: 0.7rem;
   }
 
   /* HUD flutuante no mobile */
   .hud-overlay {
-    top: 10px;
-    left: 8px;
-    max-width: 220px;
-    padding: 6px 10px;
-    font-size: 0.75rem;
-    gap: 4px;
+    top: 6px;
+    left: 6px;
+    max-width: 200px;
+    padding: 6px 8px;
+    font-size: 0.72rem;
+    gap: 3px;
+    border-radius: 6px;
+  }
+
+  .hud-item {
+    gap: 8px;
   }
 
   /* Barra de controle inferior adaptável */
   .control-bar {
-    padding: 8px 10px;
-    gap: 8px;
+    padding: 6px 8px;
+    gap: 6px;
     justify-content: flex-start;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .control-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .control-bar .btn {
+    min-height: 32px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
   }
 
   .control-group {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     flex-shrink: 0;
+    gap: 6px;
   }
 
   .control-group input[type="range"] {
-    width: 80px;
+    width: 65px;
   }
 
   #select-camera {
-    max-width: 130px !important;
+    max-width: 120px !important;
+    font-size: 0.75rem;
   }
 
   /* Indicador visual de piscada menor em tela pequena */
   .blink-indicator {
-    top: 10px;
-    right: 10px;
-    width: 36px;
-    height: 36px;
-    font-size: 1.1rem;
+    top: 6px;
+    right: 6px;
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
   }
 }
 
