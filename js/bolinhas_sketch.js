@@ -1,4 +1,4 @@
-﻿/**
+/**
  * bolinhas_sketch.js
  * 
  * Port fiel do sketch original em Processing (Bolinhas_OSC_PISCADAS.pde)
@@ -18,8 +18,8 @@ const MAX_BOLINHAS = 500;
 
 function setup() {
   const container = document.getElementById('canvas-container');
-  const w = container ? container.clientWidth : 800;
-  const h = container ? container.clientHeight : 800;
+  const w = (container && container.clientWidth > 0) ? container.clientWidth : window.innerWidth;
+  const h = (container && container.clientHeight > 0) ? container.clientHeight : window.innerHeight;
   const canvas = createCanvas(w, h);
   if (container) {
     canvas.parent('canvas-container');
@@ -27,6 +27,14 @@ function setup() {
 
   frameRate(30);
   background(0); // Fundo preto original
+
+  // Observer para redimensionar se o iframe ou tela mudar
+  if (window.ResizeObserver && container) {
+    const ro = new ResizeObserver(() => {
+      windowResized();
+    });
+    ro.observe(container);
+  }
 
   // Escuta o barramento estilo OSC
   if (window.oscBus) {
@@ -41,10 +49,12 @@ function setup() {
 function windowResized() {
   const container = document.getElementById('canvas-container');
   if (container && container.clientWidth > 0 && container.clientHeight > 0) {
-    const prevGraphics = get();
-    resizeCanvas(container.clientWidth, container.clientHeight);
-    background(0);
-    image(prevGraphics, 0, 0);
+    if (width !== container.clientWidth || height !== container.clientHeight) {
+      const prevGraphics = get();
+      resizeCanvas(container.clientWidth, container.clientHeight);
+      background(0);
+      image(prevGraphics, 0, 0);
+    }
   }
 }
 
