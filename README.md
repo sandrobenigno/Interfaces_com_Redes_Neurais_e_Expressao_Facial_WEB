@@ -1,6 +1,6 @@
 # Interfaces com Redes Neurais e Expressão Facial - Web (MediaPipe + p5.js)
 
-![](img/preview.jpg)
+![](img/preview_novo.jpg)
 
 Esta aplicação é a migração e evolução para ambiente Web do projeto original [**Interfaces com Redes Neurais e Expressão Facial**](https://github.com/LAC-EBA-UFMG/Interfaces_com_Redes_Neurais_e_Expressao_Facial)
 
